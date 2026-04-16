@@ -2,24 +2,83 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ToDoリスト</title>
-  <link rel="stylesheet" href="style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#667eea">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="スケジュール">
+  <title>スケジュール管理</title>
+  <link rel="stylesheet" href="./style.css">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="apple-touch-icon" href="./icons/icon.svg">
 </head>
 <body>
-  <div class="container">
-    <h1>ToDoリスト</h1>
 
-    <div class="input-area">
-      <input type="text" id="task-input" placeholder="タスクを入力してください..." />
-      <button id="add-btn">追加</button>
+  <!-- Header -->
+  <header class="app-header">
+    <h1>スケジュール管理</h1>
+    <div class="header-actions">
+      <button class="header-btn" id="today-btn">今日</button>
+      <button class="header-btn" id="notify-permission-btn">通知を許可</button>
     </div>
+  </header>
 
-    <ul id="task-list"></ul>
-
-    <p class="empty-msg" id="empty-msg">タスクがありません</p>
+  <!-- PWA install banner -->
+  <div class="install-banner" id="install-banner" style="display:none">
+    <p>ホーム画面に追加してアプリとして使えます</p>
+    <div class="install-banner-actions">
+      <button class="install-btn" id="install-btn">追加する</button>
+      <button class="dismiss-btn" id="dismiss-install" aria-label="閉じる">✕</button>
+    </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Calendar -->
+  <main class="calendar-container">
+    <div class="cal-nav">
+      <button class="cal-nav-btn" id="prev-month" aria-label="前の月">&#8249;</button>
+      <span id="cal-title"></span>
+      <button class="cal-nav-btn" id="next-month" aria-label="次の月">&#8250;</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+  </main>
+
+  <!-- Overlay -->
+  <div class="panel-overlay" id="panel-overlay"></div>
+
+  <!-- Day panel (bottom sheet) -->
+  <div class="day-panel" id="day-panel" role="dialog" aria-modal="true">
+    <div class="panel-handle"></div>
+    <div class="panel-header">
+      <h2 id="panel-date"></h2>
+      <button class="close-btn" id="close-panel-btn" aria-label="閉じる">✕</button>
+    </div>
+    <div class="panel-body">
+      <p class="task-count" id="task-count"></p>
+      <ul id="day-task-list"></ul>
+      <p class="empty-msg" id="day-empty-msg">タスクがありません</p>
+      <p class="limit-msg" id="limit-msg" style="display:none">タスクは最大10件です</p>
+
+      <div class="add-task-area" id="add-task-area">
+        <div class="input-row">
+          <input
+            type="text"
+            class="task-input"
+            id="new-task-input"
+            placeholder="タスクを入力..."
+            autocomplete="off"
+          />
+          <button class="add-btn" id="add-task-btn">追加</button>
+        </div>
+        <div class="notify-row">
+          <label class="notify-label" for="notify-time-input">🔔 通知時刻</label>
+          <input type="time" class="notify-input" id="notify-time-input" />
+          <span class="notify-hint">（任意）</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
 </body>
 </html>

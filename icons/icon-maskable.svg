@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- Full bleed background for maskable -->
+  <rect width="192" height="192" fill="#667eea"/>
+  <!-- Card background -->
+  <rect x="32" y="54" width="128" height="108" rx="14" fill="white" opacity="0.15"/>
+  <rect x="32" y="54" width="128" height="108" rx="14" fill="none" stroke="white" stroke-width="5"/>
+  <!-- Top bar -->
+  <rect x="32" y="54" width="128" height="38" rx="14" fill="white" opacity="0.25"/>
+  <rect x="32" y="80" width="128" height="12" fill="white" opacity="0.25"/>
+  <!-- Calendar rings -->
+  <rect x="70" y="38" width="10" height="30" rx="5" fill="white"/>
+  <rect x="112" y="38" width="10" height="30" rx="5" fill="white"/>
+  <!-- Checkmark -->
+  <polyline points="56,124 76,146 136,98" fill="none" stroke="white" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,85 +1,395 @@
-* {
+/* ================================================================
+   Reset & Variables
+   ================================================================ */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+:root {
+  --primary:       #667eea;
+  --primary-dark:  #5a67d8;
+  --bg:            #f0f4f8;
+  --white:         #ffffff;
+  --text:          #2d3748;
+  --text-light:    #718096;
+  --border:        #e2e8f0;
+  --success:       #48bb78;
+  --danger:        #e53e3e;
+  --sun:           #e53e3e;
+  --sat:           #4299e1;
+  --radius:        12px;
+  --shadow:        0 4px 20px rgba(0,0,0,0.10);
+}
+
 body {
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  background: #f0f4f8;
+  font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+  background: var(--bg);
   min-height: 100vh;
+  color: var(--text);
+  -webkit-tap-highlight-color: transparent;
+  /* Prevent text selection on calendar tap */
+  user-select: none;
+}
+
+/* ================================================================
+   Header
+   ================================================================ */
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--primary);
+  color: var(--white);
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  padding-top: calc(14px + env(safe-area-inset-top));
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.45);
 }
 
-.container {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-  padding: 32px;
-  width: 100%;
-  max-width: 500px;
+.app-header h1 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-h1 {
-  font-size: 1.8rem;
-  color: #2d3748;
-  margin-bottom: 24px;
-  text-align: center;
-}
-
-.input-area {
+.header-actions {
   display: flex;
   gap: 8px;
-  margin-bottom: 24px;
 }
 
-#task-input {
-  flex: 1;
-  padding: 10px 14px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-#task-input:focus {
-  border-color: #667eea;
-}
-
-#add-btn {
-  padding: 10px 20px;
-  background: #667eea;
-  color: #fff;
+.header-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--white);
   border: none;
-  border-radius: 8px;
-  font-size: 1rem;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-family: inherit;
   cursor: pointer;
   transition: background 0.2s;
   white-space: nowrap;
 }
 
-#add-btn:hover {
-  background: #5a67d8;
+.header-btn:hover,
+.header-btn:active {
+  background: rgba(255, 255, 255, 0.35);
 }
 
-#task-list {
+.header-btn.active {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.header-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ================================================================
+   Install Banner
+   ================================================================ */
+.install-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 16px 0;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: var(--white);
+  border-radius: var(--radius);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.install-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.install-btn {
+  background: var(--white);
+  color: var(--primary);
+  border: none;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+
+.install-btn:hover { opacity: 0.9; }
+
+.dismiss-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+/* ================================================================
+   Calendar Container
+   ================================================================ */
+.calendar-container {
+  padding: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+#cal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cal-nav-btn {
+  background: var(--white);
+  border: 2px solid var(--border);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.cal-nav-btn:hover,
+.cal-nav-btn:active {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ================================================================
+   Calendar Grid
+   ================================================================ */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.day-header {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-light);
+  padding: 6px 0;
+}
+
+.day-header.sun { color: var(--sun); }
+.day-header.sat { color: var(--sat); }
+
+.cal-day {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--white);
+  border: 2px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cal-day:hover,
+.cal-day:active {
+  background: #ebf4ff;
+  border-color: var(--primary);
+}
+
+.cal-day.empty {
+  background: transparent;
+  cursor: default;
+  border-color: transparent;
+  pointer-events: none;
+}
+
+.cal-day.today {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.cal-day.selected:not(.today) {
+  border-color: var(--primary);
+  background: #ebf4ff;
+}
+
+.cal-day.today.selected {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.day-num {
+  font-size: 0.88rem;
+  color: var(--text);
+  line-height: 1;
+  font-weight: 500;
+}
+
+.cal-day.sun .day-num { color: var(--sun); }
+.cal-day.sat .day-num { color: var(--sat); }
+.cal-day.today .day-num { color: var(--white) !important; }
+
+.task-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+}
+
+.task-dot.all-done { background: var(--success); }
+.cal-day.today .task-dot { background: rgba(255,255,255,0.8); }
+
+/* ================================================================
+   Overlay
+   ================================================================ */
+.panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+
+.panel-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ================================================================
+   Day Panel — Mobile bottom sheet
+   ================================================================ */
+.day-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
+  background: var(--white);
+  border-radius: 20px 20px 0 0;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  /* Account for notch / home indicator */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.day-panel.open {
+  transform: translateY(0);
+}
+
+.panel-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 10px auto 0;
+  flex-shrink: 0;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.panel-header h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--border);
+  color: var(--text-light);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.close-btn:hover,
+.close-btn:active {
+  background: #cbd5e0;
+}
+
+.panel-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 12px 20px 20px;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ================================================================
+   Task Count
+   ================================================================ */
+.task-count {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  text-align: right;
+  margin-bottom: 10px;
+}
+
+/* ================================================================
+   Task List
+   ================================================================ */
+#day-task-list {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .task-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
   transition: background 0.2s, border-color 0.2s;
 }
 
@@ -91,22 +401,38 @@ h1 {
 .task-item input[type="checkbox"] {
   width: 20px;
   height: 20px;
-  accent-color: #48bb78;
+  accent-color: var(--success);
   cursor: pointer;
   flex-shrink: 0;
 }
 
-.task-text {
+.task-text-wrap {
   flex: 1;
-  font-size: 1rem;
-  color: #2d3748;
+  min-width: 0;
+}
+
+.task-text {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text);
   word-break: break-word;
-  transition: color 0.2s;
+  user-select: text;
 }
 
 .task-item.done .task-text {
   text-decoration: line-through;
-  color: #a0aec0;
+  color: var(--text-light);
+}
+
+.notify-time-tag {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--primary);
+  margin-top: 2px;
+}
+
+.task-item.done .notify-time-tag {
+  color: var(--text-light);
 }
 
 .delete-btn {
@@ -115,20 +441,147 @@ h1 {
   color: #cbd5e0;
   font-size: 1.2rem;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: color 0.2s, background 0.2s;
+  padding: 4px 6px;
+  border-radius: 6px;
   flex-shrink: 0;
+  line-height: 1;
+  transition: color 0.2s, background 0.2s;
 }
 
-.delete-btn:hover {
-  color: #e53e3e;
+.delete-btn:hover,
+.delete-btn:active {
+  color: var(--danger);
   background: #fff5f5;
 }
 
 .empty-msg {
   text-align: center;
-  color: #a0aec0;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  padding: 24px 0 8px;
+}
+
+.limit-msg {
+  text-align: center;
+  color: var(--danger);
+  font-size: 0.85rem;
+  padding: 10px;
+  background: #fff5f5;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+/* ================================================================
+   Add Task Form
+   ================================================================ */
+.add-task-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.task-input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+  user-select: text;
+}
+
+.task-input:focus {
+  border-color: var(--primary);
+}
+
+.add-btn {
+  padding: 10px 18px;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
   font-size: 0.95rem;
-  margin-top: 16px;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.add-btn:hover,
+.add-btn:active {
+  background: var(--primary-dark);
+}
+
+.notify-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.notify-label {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.notify-input {
+  flex: 1;
+  min-width: 120px;
+  padding: 8px 10px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.notify-input:focus {
+  border-color: var(--primary);
+}
+
+.notify-hint {
+  font-size: 0.78rem;
+  color: var(--text-light);
+}
+
+/* ================================================================
+   Desktop — show panel as a centered modal instead of bottom sheet
+   ================================================================ */
+@media (min-width: 600px) {
+  .day-panel {
+    bottom: auto;
+    top: 50%;
+    left: 50%;
+    right: auto;
+    width: 90%;
+    max-width: 460px;
+    max-height: 80vh;
+    border-radius: 16px;
+    transform: translate(-50%, -44%) scale(0.94);
+    opacity: 0;
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1),
+                opacity  0.3s;
+  }
+
+  .day-panel.open {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+
+  .panel-handle { display: none; }
 }
