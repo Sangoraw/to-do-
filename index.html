@@ -53,29 +53,8 @@
       <h2 id="panel-date"></h2>
       <button class="close-btn" id="close-panel-btn" aria-label="閉じる">✕</button>
     </div>
-    <div class="panel-body">
-      <p class="task-count" id="task-count"></p>
-      <ul id="day-task-list"></ul>
-      <p class="empty-msg" id="day-empty-msg">タスクがありません</p>
-      <p class="limit-msg" id="limit-msg" style="display:none">タスクは最大10件です</p>
-
-      <div class="add-task-area" id="add-task-area">
-        <div class="input-row">
-          <input
-            type="text"
-            class="task-input"
-            id="new-task-input"
-            placeholder="タスクを入力..."
-            autocomplete="off"
-          />
-          <button class="add-btn" id="add-task-btn">追加</button>
-        </div>
-        <div class="notify-row">
-          <label class="notify-label" for="notify-time-input">🔔 通知時刻</label>
-          <input type="time" class="notify-input" id="notify-time-input" />
-          <span class="notify-hint">（任意）</span>
-        </div>
-      </div>
+    <div class="panel-body" id="panel-body">
+      <!-- タイムラインはJavaScriptで生成 -->
     </div>
   </div>
 

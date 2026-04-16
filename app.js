@@ -38,6 +38,7 @@ const _today = new Date();
 let currentYear  = _today.getFullYear();
 let currentMonth = _today.getMonth();   // 0-based
 let selectedDate = null;                // 'YYYY-MM-DD'
+let activeHour   = null;                // 開いているインライン入力の時間 (0-23 | 'none' | null)
 
 // ================================================================
 // Date utilities
@@ -120,6 +121,7 @@ function renderCalendar() {
 // ================================================================
 
 function openPanel(dateStr) {
+  activeHour   = null;
   selectedDate = dateStr;
 
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -128,105 +130,222 @@ function openPanel(dateStr) {
   document.getElementById('panel-date').textContent =
     `${y}年${m}月${d}日（${dayNames[dow]}）`;
 
-  renderTaskList();
+  renderTimeline();
 
   document.getElementById('panel-overlay').classList.add('open');
   document.getElementById('day-panel').classList.add('open');
   renderCalendar();
-
-  // Focus input after animation
-  setTimeout(() => {
-    const input = document.getElementById('new-task-input');
-    if (input) input.focus();
-  }, 350);
 }
 
 function closePanel() {
   selectedDate = null;
+  activeHour   = null;
   document.getElementById('panel-overlay').classList.remove('open');
   document.getElementById('day-panel').classList.remove('open');
   renderCalendar();
 }
 
-function renderTaskList() {
+// ================================================================
+// Timeline rendering
+// ================================================================
+
+function renderTimeline() {
   if (!selectedDate) return;
 
-  const tasks    = getTasksForDate(selectedDate);
-  const list     = document.getElementById('day-task-list');
-  const emptyMsg = document.getElementById('day-empty-msg');
-  const limitMsg = document.getElementById('limit-msg');
-  const addArea  = document.getElementById('add-task-area');
-  const countEl  = document.getElementById('task-count');
-
-  list.innerHTML       = '';
-  countEl.textContent  = `${tasks.length} / 10 件`;
-  emptyMsg.style.display = tasks.length === 0 ? 'block' : 'none';
+  const tasks     = getTasksForDate(selectedDate);
+  const panelBody = document.getElementById('panel-body');
+  panelBody.innerHTML = '';
 
   const atLimit = tasks.length >= 10;
-  limitMsg.style.display = atLimit ? 'block' : 'none';
-  addArea.style.display  = atLimit ? 'none'  : 'flex';
+
+  // タスクを時間帯ごとに分類
+  const tasksByHour = {};
+  const unscheduled = [];
 
   tasks.forEach((task, i) => {
-    const li = document.createElement('li');
-    li.className = 'task-item' + (task.done ? ' done' : '');
-
-    // Checkbox
-    const cb    = document.createElement('input');
-    cb.type     = 'checkbox';
-    cb.checked  = task.done;
-    cb.setAttribute('aria-label', task.text);
-    cb.addEventListener('change', () => toggleTask(i));
-
-    // Text area
-    const wrap  = document.createElement('div');
-    wrap.className = 'task-text-wrap';
-
-    const span  = document.createElement('span');
-    span.className   = 'task-text';
-    span.textContent = task.text;
-    wrap.appendChild(span);
-
     if (task.notifyTime) {
-      const tag   = document.createElement('span');
-      tag.className   = 'notify-time-tag';
-      tag.textContent = `🔔 ${task.notifyTime}`;
-      wrap.appendChild(tag);
+      const hour = parseInt(task.notifyTime.split(':')[0], 10);
+      if (!tasksByHour[hour]) tasksByHour[hour] = [];
+      tasksByHour[hour].push({ task, index: i });
+    } else {
+      unscheduled.push({ task, index: i });
+    }
+  });
+
+  // 「時刻なし」セクション（未スケジュールタスクがある場合、または入力中）
+  if (unscheduled.length > 0 || activeHour === 'none') {
+    const section = document.createElement('div');
+    section.className = 'unscheduled-section';
+
+    const header = document.createElement('div');
+    header.className = 'section-label';
+    header.textContent = '時刻なし';
+    section.appendChild(header);
+
+    unscheduled.forEach(({ task, index }) => {
+      section.appendChild(buildTaskEl(task, index));
+    });
+
+    if (activeHour === 'none') {
+      section.appendChild(buildInlineAdd('none'));
+    } else if (!atLimit) {
+      const btn = document.createElement('button');
+      btn.className = 'time-add-btn';
+      btn.textContent = '＋ 追加';
+      btn.addEventListener('click', () => {
+        activeHour = 'none';
+        renderTimeline();
+      });
+      section.appendChild(btn);
     }
 
-    // Delete button
-    const del   = document.createElement('button');
-    del.className    = 'delete-btn';
-    del.textContent  = '×';
-    del.setAttribute('aria-label', '削除');
-    del.addEventListener('click', () => deleteTask(i));
+    panelBody.appendChild(section);
+  }
 
-    li.appendChild(cb);
-    li.appendChild(wrap);
-    li.appendChild(del);
-    list.appendChild(li);
-  });
+  // タイムライン（0〜23時）
+  const timeline = document.createElement('div');
+  timeline.className = 'timeline';
+
+  for (let h = 0; h < 24; h++) {
+    const row = document.createElement('div');
+    row.className = 'time-row';
+
+    // 時刻ラベル（クリックでその時間にタスク追加）
+    const label = document.createElement('div');
+    label.className = 'time-label';
+    label.textContent = `${String(h).padStart(2, '0')}:00`;
+    if (!atLimit) {
+      label.addEventListener('click', (e) => {
+        e.stopPropagation();
+        activeHour = h;
+        renderTimeline();
+      });
+    }
+    row.appendChild(label);
+
+    // コンテンツエリア
+    const content = document.createElement('div');
+    content.className = 'time-content';
+
+    const hourTasks = tasksByHour[h] || [];
+    hourTasks.forEach(({ task, index }) => {
+      content.appendChild(buildTaskEl(task, index));
+    });
+
+    if (activeHour === h) {
+      content.appendChild(buildInlineAdd(h));
+    } else if (!atLimit) {
+      const trigger = document.createElement('div');
+      trigger.className = 'time-add-trigger';
+      trigger.addEventListener('click', () => {
+        activeHour = h;
+        renderTimeline();
+      });
+      content.appendChild(trigger);
+    }
+
+    row.appendChild(content);
+    timeline.appendChild(row);
+  }
+
+  panelBody.appendChild(timeline);
+
+  // 現在時刻付近にスクロール
+  if (activeHour === null) {
+    const scrollTo = Math.max(0, new Date().getHours() - 1);
+    const rows = timeline.querySelectorAll('.time-row');
+    if (rows[scrollTo]) {
+      setTimeout(() => rows[scrollTo].scrollIntoView({ block: 'start', behavior: 'auto' }), 80);
+    }
+  }
 }
 
-// ================================================================
-// Task CRUD
-// ================================================================
+function buildTaskEl(task, index) {
+  const div = document.createElement('div');
+  div.className = 'task-item' + (task.done ? ' done' : '');
 
-function addTask() {
-  if (!selectedDate) return;
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.checked = task.done;
+  cb.setAttribute('aria-label', task.text);
+  cb.addEventListener('change', () => toggleTask(index));
 
-  const input     = document.getElementById('new-task-input');
-  const timeInput = document.getElementById('notify-time-input');
-  const text      = input.value.trim();
-  if (!text) return;
+  const wrap = document.createElement('div');
+  wrap.className = 'task-text-wrap';
+
+  const span = document.createElement('span');
+  span.className   = 'task-text';
+  span.textContent = task.text;
+  wrap.appendChild(span);
+
+  const del = document.createElement('button');
+  del.className   = 'delete-btn';
+  del.textContent = '×';
+  del.setAttribute('aria-label', '削除');
+  del.addEventListener('click', (e) => { e.stopPropagation(); deleteTask(index); });
+
+  div.appendChild(cb);
+  div.appendChild(wrap);
+  div.appendChild(del);
+  return div;
+}
+
+function buildInlineAdd(hour) {
+  const container = document.createElement('div');
+  container.className = 'inline-add';
+
+  const input = document.createElement('input');
+  input.type        = 'text';
+  input.className   = 'inline-add-input';
+  input.placeholder = 'タスクを入力...';
+  input.autocomplete = 'off';
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  submitInlineAdd(input.value, hour);
+    if (e.key === 'Escape') { activeHour = null; renderTimeline(); }
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.className   = 'inline-add-submit';
+  addBtn.textContent = '追加';
+  addBtn.addEventListener('click', () => submitInlineAdd(input.value, hour));
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className   = 'inline-add-cancel';
+  cancelBtn.textContent = '✕';
+  cancelBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    activeHour = null;
+    renderTimeline();
+  });
+
+  container.appendChild(input);
+  container.appendChild(addBtn);
+  container.appendChild(cancelBtn);
+
+  setTimeout(() => input.focus(), 30);
+  return container;
+}
+
+function submitInlineAdd(text, hour) {
+  text = text.trim();
+  if (!text) {
+    activeHour = null;
+    renderTimeline();
+    return;
+  }
 
   const tasks = getTasksForDate(selectedDate);
   if (tasks.length >= 10) return;
+
+  const notifyTime = (hour !== 'none')
+    ? `${String(hour).padStart(2, '0')}:00`
+    : null;
 
   const task = {
     id:         `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     text,
     done:       false,
-    notifyTime: timeInput.value || null,
+    notifyTime,
   };
 
   tasks.push(task);
@@ -236,18 +355,20 @@ function addTask() {
     addScheduledNotification(task, selectedDate);
   }
 
-  input.value     = '';
-  timeInput.value = '';
-  renderTaskList();
+  activeHour = null;
+  renderTimeline();
   renderCalendar();
-  input.focus();
 }
+
+// ================================================================
+// Task CRUD
+// ================================================================
 
 function toggleTask(index) {
   const tasks = getTasksForDate(selectedDate);
   tasks[index].done = !tasks[index].done;
   saveTasksForDate(selectedDate, tasks);
-  renderTaskList();
+  renderTimeline();
   renderCalendar();
 }
 
@@ -261,7 +382,7 @@ function deleteTask(index) {
 
   tasks.splice(index, 1);
   saveTasksForDate(selectedDate, tasks);
-  renderTaskList();
+  renderTimeline();
   renderCalendar();
 }
 
@@ -365,6 +486,16 @@ async function requestNotificationPermission() {
     alert('このブラウザは通知に対応していません');
     return;
   }
+  // すでにブロックされている場合は解除方法を案内
+  if (Notification.permission === 'denied') {
+    alert(
+      '通知がブロックされています。\n\n' +
+      '解除するには：\n' +
+      'ブラウザのアドレスバー左にある 🔒 アイコン（またはサイト設定）をクリックし、' +
+      '「通知」を「許可」に変更してください。'
+    );
+    return;
+  }
   const permission = await Notification.requestPermission();
   updateNotifyBtn(permission);
   if (permission === 'granted') {
@@ -379,13 +510,14 @@ function updateNotifyBtn(permission) {
   if (permission === 'granted') {
     btn.textContent = '通知 ON ✓';
     btn.classList.add('active');
-    btn.disabled    = false;
+    btn.disabled = false;
   } else if (permission === 'denied') {
-    btn.textContent = '通知ブロック中';
-    btn.disabled    = true;
+    btn.textContent = '通知ブロック中（解除方法）';
+    btn.classList.remove('active');
+    btn.disabled = false;  // 押せるようにしてメッセージを表示
   } else {
     btn.textContent = '通知を許可';
-    btn.disabled    = false;
+    btn.disabled = false;
   }
 }
 
@@ -454,12 +586,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Panel controls
   document.getElementById('close-panel-btn').addEventListener('click', closePanel);
   document.getElementById('panel-overlay').addEventListener('click', closePanel);
-
-  // Task input
-  document.getElementById('add-task-btn').addEventListener('click', addTask);
-  document.getElementById('new-task-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addTask();
-  });
 
   // Notification permission
   document.getElementById('notify-permission-btn').addEventListener('click',

@@ -560,6 +560,156 @@ body {
 }
 
 /* ================================================================
+   Timeline
+   ================================================================ */
+.timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.time-row {
+  display: flex;
+  align-items: flex-start;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+
+.time-label {
+  width: 52px;
+  padding: 12px 8px 12px 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-light);
+  flex-shrink: 0;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s;
+  user-select: none;
+}
+
+.time-label:hover {
+  color: var(--primary);
+}
+
+.time-content {
+  flex: 1;
+  padding: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* 空エリアをクリック可能にする透明トリガー */
+.time-add-trigger {
+  min-height: 36px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.time-add-trigger:hover {
+  background: #ebf4ff;
+}
+
+/* インライン追加フォーム */
+.inline-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.inline-add-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 2px solid var(--primary);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text);
+  outline: none;
+  user-select: text;
+}
+
+.inline-add-submit {
+  padding: 8px 12px;
+  background: var(--primary);
+  color: var(--white);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.inline-add-submit:hover,
+.inline-add-submit:active {
+  background: var(--primary-dark);
+}
+
+.inline-add-cancel {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  background: var(--border);
+  color: var(--text-light);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.inline-add-cancel:hover {
+  background: #cbd5e0;
+}
+
+/* 時刻なしセクション */
+.unscheduled-section {
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 4px;
+  padding-bottom: 8px;
+}
+
+.section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-light);
+  letter-spacing: 0.05em;
+  padding: 8px 0 6px;
+  text-transform: uppercase;
+}
+
+/* 時刻なしセクションの「＋ 追加」ボタン */
+.time-add-btn {
+  font-size: 0.85rem;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 0;
+  font-family: inherit;
+  transition: opacity 0.15s;
+}
+
+.time-add-btn:hover {
+  opacity: 0.7;
+}
+
+/* タスクアイテム（タイムライン内） */
+.time-content .task-item {
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin: 2px 0;
+}
+
+/* ================================================================
    Desktop — show panel as a centered modal instead of bottom sheet
    ================================================================ */
 @media (min-width: 600px) {
