@@ -87,15 +87,20 @@
     /* Input area */
     .input-area {
       display: flex;
+      flex-direction: column;
       gap: 8px;
       margin-bottom: 16px;
+      background: var(--white);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
     }
 
     #task-input {
-      flex: 1;
-      padding: 12px 14px;
+      width: 100%;
+      padding: 10px 12px;
       border: 2px solid var(--border);
-      border-radius: 10px;
+      border-radius: 8px;
       font-size: 1rem;
       font-family: inherit;
       outline: none;
@@ -106,18 +111,51 @@
 
     #task-input:focus { border-color: var(--primary); }
 
+    .input-row2 {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .time-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+      padding: 8px 10px;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--white);
+      transition: border-color 0.2s;
+    }
+
+    .time-wrap:focus-within { border-color: var(--primary); }
+
+    .time-icon { font-size: 0.9rem; flex-shrink: 0; }
+
+    #time-input {
+      border: none;
+      outline: none;
+      font-size: 0.95rem;
+      font-family: inherit;
+      color: var(--text);
+      background: transparent;
+      width: 100%;
+    }
+
     #add-btn {
-      padding: 12px 20px;
+      padding: 10px 20px;
       background: var(--primary);
       color: var(--white);
       border: none;
-      border-radius: 10px;
+      border-radius: 8px;
       font-size: 1rem;
       font-family: inherit;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.2s;
       white-space: nowrap;
+      flex-shrink: 0;
     }
 
     #add-btn:hover, #add-btn:active { background: var(--primary-dark); }
@@ -173,8 +211,10 @@
       flex-shrink: 0;
     }
 
+    .task-info { flex: 1; min-width: 0; }
+
     .task-text {
-      flex: 1;
+      display: block;
       font-size: 1rem;
       color: var(--text);
       word-break: break-word;
@@ -184,6 +224,15 @@
       text-decoration: line-through;
       color: var(--text-light);
     }
+
+    .task-time {
+      display: inline-block;
+      font-size: 0.75rem;
+      color: var(--primary);
+      margin-top: 3px;
+    }
+
+    .task-item.done .task-time { color: var(--text-light); }
 
     .delete-btn {
       background: none;
@@ -233,7 +282,11 @@
       transition: color 0.2s;
     }
 
-    .nav-item.active { color: var(--primary); }
+    .nav-item.active { color: var(--primary); font-weight: 600; }
+
+    .nav-item:first-child {
+      border-right: 2px solid var(--border);
+    }
 
     .nav-icon { font-size: 1.3rem; line-height: 1; }
   </style>
@@ -253,7 +306,13 @@
 
     <div class="input-area">
       <input type="text" id="task-input" placeholder="タスクを追加..." autocomplete="off" />
-      <button id="add-btn">追加</button>
+      <div class="input-row2">
+        <div class="time-wrap">
+          <span class="time-icon">🕐</span>
+          <input type="time" id="time-input" />
+        </div>
+        <button id="add-btn">追加</button>
+      </div>
     </div>
 
     <div class="section-header">
@@ -278,10 +337,11 @@
 
   <script>
     // calendarTasks と共有ストレージを使い、今日の日付のタスクを表示・編集する
-    const input    = document.getElementById('task-input');
-    const addBtn   = document.getElementById('add-btn');
-    const taskList = document.getElementById('task-list');
-    const emptyMsg = document.getElementById('empty-msg');
+    const input      = document.getElementById('task-input');
+    const timeInput  = document.getElementById('time-input');
+    const addBtn     = document.getElementById('add-btn');
+    const taskList   = document.getElementById('task-list');
+    const emptyMsg   = document.getElementById('empty-msg');
     const countBadge = document.getElementById('task-count');
 
     const today = new Date();
@@ -327,9 +387,20 @@
         checkbox.checked = task.done;
         checkbox.addEventListener('change', () => toggleTask(index));
 
+        const info = document.createElement('div');
+        info.className = 'task-info';
+
         const span = document.createElement('span');
         span.className   = 'task-text';
         span.textContent = task.text;
+        info.appendChild(span);
+
+        if (task.notifyTime) {
+          const timeTag = document.createElement('span');
+          timeTag.className   = 'task-time';
+          timeTag.textContent = '🕐 ' + task.notifyTime;
+          info.appendChild(timeTag);
+        }
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className   = 'delete-btn';
@@ -338,7 +409,7 @@
         deleteBtn.addEventListener('click', () => deleteTask(index));
 
         li.appendChild(checkbox);
-        li.appendChild(span);
+        li.appendChild(info);
         li.appendChild(deleteBtn);
         taskList.appendChild(li);
       });
@@ -349,14 +420,15 @@
       if (!text) return;
       const tasks = getTasks();
       tasks.push({
-        id:   `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+        id:         `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
         text,
-        done: false,
-        notifyTime: null,
+        done:       false,
+        notifyTime: timeInput.value || null,
       });
       saveTasks(tasks);
       renderTasks();
-      input.value = '';
+      input.value     = '';
+      timeInput.value = '';
       input.focus();
     }
 

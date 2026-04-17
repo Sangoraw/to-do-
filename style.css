@@ -784,6 +784,8 @@ body {
 .nav-item.active { color: var(--primary); font-weight: 600; }
 .nav-item:hover  { color: var(--primary); }
 
+.nav-item:first-child { border-right: 2px solid var(--border); }
+
 .nav-icon { font-size: 1.3rem; line-height: 1; }
 
 /* Prevent calendar from being hidden behind bottom nav */
