@@ -111,6 +111,33 @@
 
     #task-input:focus { border-color: var(--primary); }
 
+    /* モード切替トグル */
+    .mode-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .mode-btn {
+      flex: 1;
+      padding: 7px 0;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--text-light);
+      font-size: 0.85rem;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .mode-btn.active {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: var(--white);
+      font-weight: 600;
+    }
+
     .input-row2 {
       display: flex;
       gap: 8px;
@@ -133,7 +160,7 @@
 
     .time-icon { font-size: 0.9rem; flex-shrink: 0; }
 
-    #time-input {
+    .time-wrap select {
       border: none;
       outline: none;
       font-size: 0.95rem;
@@ -144,7 +171,7 @@
       cursor: pointer;
     }
 
-    #time-input option:disabled {
+    .time-wrap select option:disabled {
       color: #c0c8d8;
       background: #f7f9fc;
     }
@@ -312,11 +339,21 @@
 
     <div class="input-area">
       <input type="text" id="task-input" placeholder="タスクを追加..." autocomplete="off" />
+      <div class="mode-toggle">
+        <button class="mode-btn active" id="mode-time">🕐 時刻指定</button>
+        <button class="mode-btn" id="mode-timer">⏱ タイマー</button>
+      </div>
       <div class="input-row2">
-        <div class="time-wrap">
+        <div class="time-wrap" id="time-wrap">
           <span class="time-icon">🕐</span>
           <select id="time-input">
             <option value="">時間を選択</option>
+          </select>
+        </div>
+        <div class="time-wrap" id="timer-wrap" style="display:none">
+          <span class="time-icon">⏱</span>
+          <select id="timer-input">
+            <option value="">分後を選択</option>
           </select>
         </div>
         <button id="add-btn">追加</button>
@@ -346,10 +383,17 @@
   <script>
     const input      = document.getElementById('task-input');
     const timeInput  = document.getElementById('time-input');
+    const timerInput = document.getElementById('timer-input');
     const addBtn     = document.getElementById('add-btn');
     const taskList   = document.getElementById('task-list');
     const emptyMsg   = document.getElementById('empty-msg');
     const countBadge = document.getElementById('task-count');
+    const modeTimeBtn  = document.getElementById('mode-time');
+    const modeTimerBtn = document.getElementById('mode-timer');
+    const timeWrap     = document.getElementById('time-wrap');
+    const timerWrap    = document.getElementById('timer-wrap');
+
+    let mode = 'time'; // 'time' | 'timer'
 
     const today   = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
@@ -360,7 +404,23 @@
     document.getElementById('today-label').textContent =
       `${today.getMonth()+1}月${today.getDate()}日（${dayNames[today.getDay()]}）のタスク`;
 
-    // 時間セレクトを30分刻みで生成。過去の時間はdisabled（グレー表示）
+    // モード切替
+    modeTimeBtn.addEventListener('click', () => {
+      mode = 'time';
+      modeTimeBtn.classList.add('active');
+      modeTimerBtn.classList.remove('active');
+      timeWrap.style.display  = '';
+      timerWrap.style.display = 'none';
+    });
+    modeTimerBtn.addEventListener('click', () => {
+      mode = 'timer';
+      modeTimerBtn.classList.add('active');
+      modeTimeBtn.classList.remove('active');
+      timerWrap.style.display = '';
+      timeWrap.style.display  = 'none';
+    });
+
+    // 時刻セレクト（10分刻み、過去はdisabled）
     function buildTimeOptions() {
       const now     = new Date();
       const nowMins = now.getHours() * 60 + now.getMinutes();
@@ -371,14 +431,27 @@
         const min = m % 60;
         const val = `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
         const opt = document.createElement('option');
-        opt.value = val;
+        opt.value       = val;
         opt.textContent = val;
         if (m <= nowMins) opt.disabled = true;
         timeInput.appendChild(opt);
       }
       if (current) timeInput.value = current;
     }
+
+    // タイマーセレクト（10分〜120分）
+    function buildTimerOptions() {
+      timerInput.innerHTML = '<option value="">分後を選択</option>';
+      for (let m = 10; m <= 120; m += 10) {
+        const opt = document.createElement('option');
+        opt.value       = m;
+        opt.textContent = m < 60 ? `${m}分後` : m === 60 ? '1時間後' : `1時間${m - 60}分後`;
+        timerInput.appendChild(opt);
+      }
+    }
+
     buildTimeOptions();
+    buildTimerOptions();
     setInterval(buildTimeOptions, 60_000);
 
     // ================================================================
@@ -440,7 +513,8 @@
         const target = new Date(`${n.dateStr}T${n.notifyTime}:00`);
         const diff   = now - target;
         if (diff >= 0 && diff < 120_000) {
-          const task = getTasks().find(t => t.id === n.id);
+          const allData = getData();
+          const task = (allData[n.dateStr] || []).find(t => t.id === n.id);
           if (task && !task.done) fireNotification(n.text);
           changed = true;
           return { ...n, shown: true };
@@ -449,6 +523,29 @@
         return n;
       });
       if (changed) saveNotifications(updated);
+    }
+
+    // 朝7時に翌日以降の予定を通知
+    function checkMorningReminder() {
+      if (Notification.permission !== 'granted') return;
+      const now = new Date();
+      if (now.getHours() !== 7 || now.getMinutes() > 1) return;
+      const key = `morningReminder_${dateStr}`;
+      if (localStorage.getItem(key)) return;
+      const tasks = getTasks().filter(t => !t.done);
+      if (tasks.length === 0) return;
+      const title   = '今日の予定';
+      const options = {
+        body:  `今日は${tasks.length}件の予定があります`,
+        icon:  './icons/icon.svg',
+        badge: './icons/icon.svg',
+      };
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, options });
+      } else {
+        new Notification(title, options);
+      }
+      localStorage.setItem(key, '1');
     }
 
     async function requestNotify() {
@@ -509,11 +606,20 @@
       const text = input.value.trim();
       if (!text) return;
 
+      let notifyTime = null;
+      if (mode === 'time' && timeInput.value) {
+        notifyTime = timeInput.value;
+      } else if (mode === 'timer' && timerInput.value) {
+        const mins   = parseInt(timerInput.value, 10);
+        const target = new Date(Date.now() + mins * 60_000);
+        notifyTime = `${String(target.getHours()).padStart(2,'0')}:${String(target.getMinutes()).padStart(2,'0')}`;
+      }
+
       const task = {
-        id:         `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+        id: `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
         text,
-        done:       false,
-        notifyTime: timeInput.value || null,
+        done: false,
+        notifyTime,
       };
       const tasks = getTasks();
       tasks.push(task);
@@ -522,8 +628,9 @@
       if (task.notifyTime) scheduleNotification(task);
 
       renderTasks();
-      input.value     = '';
-      timeInput.value = '';
+      input.value      = '';
+      timeInput.value  = '';
+      timerInput.value = '';
       input.focus();
     }
 
@@ -555,7 +662,8 @@
       await requestNotify();
       renderTasks();
       checkNotifications();
-      setInterval(checkNotifications, 60_000);
+      checkMorningReminder();
+      setInterval(() => { checkNotifications(); checkMorningReminder(); }, 60_000);
     })();
 
     window.addEventListener('storage', e => {

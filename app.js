@@ -468,6 +468,20 @@ function checkNotifications() {
   if (changed) saveScheduledNotifications(updated);
 }
 
+// 朝7時に当日の予定をまとめて通知
+function checkMorningReminder() {
+  if (Notification.permission !== 'granted') return;
+  const now = new Date();
+  if (now.getHours() !== 7 || now.getMinutes() > 1) return;
+  const tStr = todayStr();
+  const key  = `morningReminder_${tStr}`;
+  if (localStorage.getItem(key)) return;
+  const tasks = getTasksForDate(tStr).filter(t => !t.done);
+  if (tasks.length === 0) return;
+  fireNotification(`今日は${tasks.length}件の予定があります`, tStr);
+  localStorage.setItem(key, '1');
+}
+
 function fireNotification(text, dateStr) {
   const title   = 'タスクのお知らせ';
   const options = {
@@ -623,5 +637,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Notification check: every 60 seconds + immediately on load
   checkNotifications();
-  setInterval(checkNotifications, 60_000);
+  checkMorningReminder();
+  setInterval(() => { checkNotifications(); checkMorningReminder(); }, 60_000);
 });
