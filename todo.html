@@ -420,20 +420,20 @@
       timeWrap.style.display  = 'none';
     });
 
-    // 時刻セレクト（10分刻み、過去はdisabled）
+    // 時刻セレクト（10分刻み、現在時刻より前は表示しない）
     function buildTimeOptions() {
       const now     = new Date();
       const nowMins = now.getHours() * 60 + now.getMinutes();
       const current = timeInput.value;
       timeInput.innerHTML = '<option value="">時間を選択</option>';
       for (let m = 0; m < 24 * 60; m += 10) {
+        if (m <= nowMins) continue;
         const h   = Math.floor(m / 60);
         const min = m % 60;
         const val = `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
         const opt = document.createElement('option');
         opt.value       = val;
         opt.textContent = val;
-        if (m <= nowMins) opt.disabled = true;
         timeInput.appendChild(opt);
       }
       if (current) timeInput.value = current;
