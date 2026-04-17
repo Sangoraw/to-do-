@@ -336,7 +336,6 @@
   </nav>
 
   <script>
-    // calendarTasks と共有ストレージを使い、今日の日付のタスクを表示・編集する
     const input      = document.getElementById('task-input');
     const timeInput  = document.getElementById('time-input');
     const addBtn     = document.getElementById('add-btn');
@@ -344,7 +343,7 @@
     const emptyMsg   = document.getElementById('empty-msg');
     const countBadge = document.getElementById('task-count');
 
-    const today = new Date();
+    const today   = new Date();
     const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
     const dayNames = ['日','月','火','水','木','金','土'];
 
@@ -353,25 +352,92 @@
     document.getElementById('today-label').textContent =
       `${today.getMonth()+1}月${today.getDate()}日（${dayNames[today.getDay()]}）のタスク`;
 
+    // 時間入力の min を現在時刻に設定し、1分ごとに更新
+    function updateTimeMin() {
+      const now = new Date();
+      timeInput.min = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    }
+    updateTimeMin();
+    setInterval(updateTimeMin, 60_000);
+
+    // ================================================================
+    // calendarTasks ストレージ
+    // ================================================================
     function getData() {
       try { return JSON.parse(localStorage.getItem('calendarTasks') || '{}'); }
       catch { return {}; }
     }
 
-    function getTasks() {
-      return getData()[dateStr] || [];
-    }
+    function getTasks() { return getData()[dateStr] || []; }
 
     function saveTasks(tasks) {
       const data = getData();
-      if (tasks.length === 0) {
-        delete data[dateStr];
-      } else {
-        data[dateStr] = tasks;
-      }
+      if (tasks.length === 0) delete data[dateStr];
+      else data[dateStr] = tasks;
       localStorage.setItem('calendarTasks', JSON.stringify(data));
     }
 
+    // ================================================================
+    // 通知スケジュール（app.js と同じストレージ共有）
+    // ================================================================
+    function getNotifications() {
+      try { return JSON.parse(localStorage.getItem('scheduledNotifications') || '[]'); }
+      catch { return []; }
+    }
+
+    function saveNotifications(list) {
+      localStorage.setItem('scheduledNotifications', JSON.stringify(list));
+    }
+
+    function scheduleNotification(task) {
+      const list = getNotifications();
+      list.push({ id: task.id, text: task.text, dateStr, notifyTime: task.notifyTime, shown: false });
+      saveNotifications(list);
+    }
+
+    function removeNotification(taskId) {
+      saveNotifications(getNotifications().filter(n => n.id !== taskId));
+    }
+
+    function fireNotification(text) {
+      const title   = 'タスクのお知らせ';
+      const options = { body: text, icon: './icons/icon.svg', badge: './icons/icon.svg' };
+      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, options });
+      } else {
+        new Notification(title, options);
+      }
+    }
+
+    function checkNotifications() {
+      if (Notification.permission !== 'granted') return;
+      const now  = new Date();
+      const list = getNotifications();
+      let changed = false;
+      const updated = list.map(n => {
+        if (n.shown) return n;
+        const target = new Date(`${n.dateStr}T${n.notifyTime}:00`);
+        const diff   = now - target;
+        if (diff >= 0 && diff < 120_000) {
+          const task = getTasks().find(t => t.id === n.id);
+          if (task && !task.done) fireNotification(n.text);
+          changed = true;
+          return { ...n, shown: true };
+        }
+        if (diff >= 120_000) { changed = true; return { ...n, shown: true }; }
+        return n;
+      });
+      if (changed) saveNotifications(updated);
+    }
+
+    async function requestNotify() {
+      if (!('Notification' in window)) return;
+      if (Notification.permission === 'default') await Notification.requestPermission();
+    }
+
+    // ================================================================
+    // タスク表示
+    // ================================================================
     function renderTasks() {
       const tasks = getTasks();
       taskList.innerHTML = '';
@@ -415,17 +481,38 @@
       });
     }
 
+    // ================================================================
+    // タスク追加・編集・削除
+    // ================================================================
     function addTask() {
       const text = input.value.trim();
       if (!text) return;
-      const tasks = getTasks();
-      tasks.push({
+
+      // 過去時刻チェック
+      if (timeInput.value) {
+        const now = new Date();
+        const [h, m] = timeInput.value.split(':').map(Number);
+        const picked = new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m);
+        if (picked <= now) {
+          timeInput.setCustomValidity('現在より後の時間を入力してください');
+          timeInput.reportValidity();
+          return;
+        }
+        timeInput.setCustomValidity('');
+      }
+
+      const task = {
         id:         `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
         text,
         done:       false,
         notifyTime: timeInput.value || null,
-      });
+      };
+      const tasks = getTasks();
+      tasks.push(task);
       saveTasks(tasks);
+
+      if (task.notifyTime) scheduleNotification(task);
+
       renderTasks();
       input.value     = '';
       timeInput.value = '';
@@ -441,6 +528,7 @@
 
     function deleteTask(index) {
       const tasks = getTasks();
+      removeNotification(tasks[index].id);
       tasks.splice(index, 1);
       saveTasks(tasks);
       renderTasks();
@@ -448,10 +536,21 @@
 
     addBtn.addEventListener('click', addTask);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+    timeInput.addEventListener('input', () => timeInput.setCustomValidity(''));
 
-    renderTasks();
+    // ================================================================
+    // 起動処理
+    // ================================================================
+    (async () => {
+      if ('serviceWorker' in navigator) {
+        await navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
+      }
+      await requestNotify();
+      renderTasks();
+      checkNotifications();
+      setInterval(checkNotifications, 60_000);
+    })();
 
-    // localStorageが他タブで更新されたときに反映
     window.addEventListener('storage', e => {
       if (e.key === 'calendarTasks') renderTasks();
     });
