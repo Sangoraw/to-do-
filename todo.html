@@ -141,6 +141,12 @@
       color: var(--text);
       background: transparent;
       width: 100%;
+      cursor: pointer;
+    }
+
+    #time-input option:disabled {
+      color: #c0c8d8;
+      background: #f7f9fc;
     }
 
     #add-btn {
@@ -309,7 +315,9 @@
       <div class="input-row2">
         <div class="time-wrap">
           <span class="time-icon">🕐</span>
-          <input type="time" id="time-input" />
+          <select id="time-input">
+            <option value="">時間を選択</option>
+          </select>
         </div>
         <button id="add-btn">追加</button>
       </div>
@@ -352,13 +360,26 @@
     document.getElementById('today-label').textContent =
       `${today.getMonth()+1}月${today.getDate()}日（${dayNames[today.getDay()]}）のタスク`;
 
-    // 時間入力の min を現在時刻に設定し、1分ごとに更新
-    function updateTimeMin() {
-      const now = new Date();
-      timeInput.min = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    // 時間セレクトを30分刻みで生成。過去の時間はdisabled（グレー表示）
+    function buildTimeOptions() {
+      const now     = new Date();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      const current = timeInput.value;
+      timeInput.innerHTML = '<option value="">時間を選択</option>';
+      for (let m = 0; m < 24 * 60; m += 30) {
+        const h   = Math.floor(m / 60);
+        const min = m % 60;
+        const val = `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+        const opt = document.createElement('option');
+        opt.value = val;
+        opt.textContent = val;
+        if (m <= nowMins) opt.disabled = true;
+        timeInput.appendChild(opt);
+      }
+      if (current) timeInput.value = current;
     }
-    updateTimeMin();
-    setInterval(updateTimeMin, 60_000);
+    buildTimeOptions();
+    setInterval(buildTimeOptions, 60_000);
 
     // ================================================================
     // calendarTasks ストレージ
@@ -488,19 +509,6 @@
       const text = input.value.trim();
       if (!text) return;
 
-      // 過去時刻チェック
-      if (timeInput.value) {
-        const now = new Date();
-        const [h, m] = timeInput.value.split(':').map(Number);
-        const picked = new Date(today.getFullYear(), today.getMonth(), today.getDate(), h, m);
-        if (picked <= now) {
-          timeInput.setCustomValidity('現在より後の時間を入力してください');
-          timeInput.reportValidity();
-          return;
-        }
-        timeInput.setCustomValidity('');
-      }
-
       const task = {
         id:         `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
         text,
@@ -536,7 +544,6 @@
 
     addBtn.addEventListener('click', addTask);
     input.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
-    timeInput.addEventListener('input', () => timeInput.setCustomValidity(''));
 
     // ================================================================
     // 起動処理
