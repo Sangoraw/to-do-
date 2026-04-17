@@ -2,91 +2,162 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#667eea">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>ToDoリスト</title>
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:      #667eea;
+      --primary-dark: #5a67d8;
+      --bg:           #f0f4f8;
+      --white:        #ffffff;
+      --text:         #2d3748;
+      --text-light:   #718096;
+      --border:       #e2e8f0;
+      --success:      #48bb78;
+      --danger:       #e53e3e;
     }
 
     body {
-      font-family: 'Helvetica Neue', Arial, sans-serif;
-      background: #f0f4f8;
+      font-family: 'Helvetica Neue', Arial, 'Hiragino Sans', 'Yu Gothic', sans-serif;
+      background: var(--bg);
       min-height: 100vh;
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Header */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--primary);
+      color: var(--white);
       display: flex;
-      align-items: flex-start;
-      justify-content: center;
-      padding: 40px 16px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      padding-top: calc(14px + env(safe-area-inset-top));
+      box-shadow: 0 2px 12px rgba(102,126,234,0.45);
     }
 
-    .container {
-      background: #fff;
+    .app-header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; }
+
+    .header-date {
+      font-size: 0.82rem;
+      opacity: 0.88;
+      background: rgba(255,255,255,0.18);
+      padding: 4px 10px;
       border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      padding: 32px;
-      width: 100%;
-      max-width: 500px;
     }
 
-    h1 {
-      font-size: 1.8rem;
-      color: #2d3748;
-      margin-bottom: 24px;
-      text-align: center;
+    /* Main content */
+    .content {
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+      padding-bottom: 80px;
     }
 
+    /* Today badge */
+    .today-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      background: var(--white);
+      border-radius: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+    }
+
+    .today-badge .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .today-badge span { font-size: 0.88rem; color: var(--text-light); }
+
+    /* Input area */
     .input-area {
       display: flex;
       gap: 8px;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
     }
 
     #task-input {
       flex: 1;
-      padding: 10px 14px;
-      border: 2px solid #e2e8f0;
-      border-radius: 8px;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
       font-size: 1rem;
+      font-family: inherit;
       outline: none;
       transition: border-color 0.2s;
+      color: var(--text);
+      background: var(--white);
     }
 
-    #task-input:focus {
-      border-color: #667eea;
-    }
+    #task-input:focus { border-color: var(--primary); }
 
     #add-btn {
-      padding: 10px 20px;
-      background: #667eea;
-      color: #fff;
+      padding: 12px 20px;
+      background: var(--primary);
+      color: var(--white);
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 1rem;
+      font-family: inherit;
+      font-weight: 600;
       cursor: pointer;
       transition: background 0.2s;
       white-space: nowrap;
     }
 
-    #add-btn:hover {
-      background: #5a67d8;
+    #add-btn:hover, #add-btn:active { background: var(--primary-dark); }
+
+    /* Section headers */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 4px 0 10px;
     }
 
-    #task-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
+    .section-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: var(--text-light);
+      text-transform: uppercase;
     }
+
+    .task-count-badge {
+      font-size: 0.75rem;
+      color: var(--white);
+      background: var(--primary);
+      border-radius: 10px;
+      padding: 2px 8px;
+    }
+
+    /* Task list */
+    #task-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 
     .task-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 12px 14px;
-      border: 2px solid #e2e8f0;
-      border-radius: 8px;
+      padding: 13px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      background: var(--white);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.05);
       transition: background 0.2s, border-color 0.2s;
     }
 
@@ -96,9 +167,8 @@
     }
 
     .task-item input[type="checkbox"] {
-      width: 20px;
-      height: 20px;
-      accent-color: #48bb78;
+      width: 20px; height: 20px;
+      accent-color: var(--success);
       cursor: pointer;
       flex-shrink: 0;
     }
@@ -106,14 +176,13 @@
     .task-text {
       flex: 1;
       font-size: 1rem;
-      color: #2d3748;
+      color: var(--text);
       word-break: break-word;
-      transition: color 0.2s;
     }
 
     .task-item.done .task-text {
       text-decoration: line-through;
-      color: #a0aec0;
+      color: var(--text-light);
     }
 
     .delete-btn {
@@ -123,73 +192,149 @@
       font-size: 1.2rem;
       cursor: pointer;
       padding: 2px 6px;
-      border-radius: 4px;
-      transition: color 0.2s, background 0.2s;
+      border-radius: 6px;
       flex-shrink: 0;
+      transition: color 0.2s, background 0.2s;
     }
 
-    .delete-btn:hover {
-      color: #e53e3e;
+    .delete-btn:hover, .delete-btn:active {
+      color: var(--danger);
       background: #fff5f5;
     }
 
     .empty-msg {
       text-align: center;
-      color: #a0aec0;
+      color: var(--text-light);
       font-size: 0.95rem;
-      margin-top: 16px;
+      padding: 32px 0;
     }
+
+    /* Bottom nav */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 100;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px 0;
+      text-decoration: none;
+      color: var(--text-light);
+      font-size: 0.72rem;
+      gap: 3px;
+      transition: color 0.2s;
+    }
+
+    .nav-item.active { color: var(--primary); }
+
+    .nav-icon { font-size: 1.3rem; line-height: 1; }
   </style>
 </head>
 <body>
-  <div class="container">
+
+  <header class="app-header">
     <h1>ToDoリスト</h1>
+    <span class="header-date" id="header-date"></span>
+  </header>
+
+  <main class="content">
+    <div class="today-badge">
+      <div class="dot"></div>
+      <span id="today-label">今日のタスク</span>
+    </div>
 
     <div class="input-area">
-      <input type="text" id="task-input" placeholder="タスクを入力してください..." />
+      <input type="text" id="task-input" placeholder="タスクを追加..." autocomplete="off" />
       <button id="add-btn">追加</button>
     </div>
 
-    <ul id="task-list"></ul>
+    <div class="section-header">
+      <span class="section-title">タスク一覧</span>
+      <span class="task-count-badge" id="task-count">0</span>
+    </div>
 
-    <p class="empty-msg" id="empty-msg">タスクがありません</p>
-  </div>
+    <ul id="task-list"></ul>
+    <p class="empty-msg" id="empty-msg">今日のタスクはありません</p>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="./index.html" class="nav-item">
+      <span class="nav-icon">📅</span>
+      <span>カレンダー</span>
+    </a>
+    <a href="./todo.html" class="nav-item active">
+      <span class="nav-icon">✅</span>
+      <span>ToDoリスト</span>
+    </a>
+  </nav>
 
   <script>
-    const input = document.getElementById('task-input');
-    const addBtn = document.getElementById('add-btn');
+    // calendarTasks と共有ストレージを使い、今日の日付のタスクを表示・編集する
+    const input    = document.getElementById('task-input');
+    const addBtn   = document.getElementById('add-btn');
     const taskList = document.getElementById('task-list');
     const emptyMsg = document.getElementById('empty-msg');
+    const countBadge = document.getElementById('task-count');
 
-    let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    const today = new Date();
+    const dateStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+    const dayNames = ['日','月','火','水','木','金','土'];
 
-    function saveTasks() {
-      localStorage.setItem('tasks', JSON.stringify(tasks));
+    document.getElementById('header-date').textContent =
+      `${today.getMonth()+1}月${today.getDate()}日（${dayNames[today.getDay()]}）`;
+    document.getElementById('today-label').textContent =
+      `${today.getMonth()+1}月${today.getDate()}日（${dayNames[today.getDay()]}）のタスク`;
+
+    function getData() {
+      try { return JSON.parse(localStorage.getItem('calendarTasks') || '{}'); }
+      catch { return {}; }
     }
 
-    function updateEmptyMsg() {
-      emptyMsg.style.display = tasks.length === 0 ? 'block' : 'none';
+    function getTasks() {
+      return getData()[dateStr] || [];
+    }
+
+    function saveTasks(tasks) {
+      const data = getData();
+      if (tasks.length === 0) {
+        delete data[dateStr];
+      } else {
+        data[dateStr] = tasks;
+      }
+      localStorage.setItem('calendarTasks', JSON.stringify(data));
     }
 
     function renderTasks() {
+      const tasks = getTasks();
       taskList.innerHTML = '';
+      countBadge.textContent = tasks.length;
+      emptyMsg.style.display = tasks.length === 0 ? 'block' : 'none';
+
       tasks.forEach((task, index) => {
         const li = document.createElement('li');
         li.className = 'task-item' + (task.done ? ' done' : '');
 
         const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
+        checkbox.type    = 'checkbox';
         checkbox.checked = task.done;
         checkbox.addEventListener('change', () => toggleTask(index));
 
         const span = document.createElement('span');
-        span.className = 'task-text';
+        span.className   = 'task-text';
         span.textContent = task.text;
 
         const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'delete-btn';
+        deleteBtn.className   = 'delete-btn';
         deleteBtn.textContent = '×';
-        deleteBtn.title = '削除';
+        deleteBtn.title       = '削除';
         deleteBtn.addEventListener('click', () => deleteTask(index));
 
         li.appendChild(checkbox);
@@ -197,37 +342,47 @@
         li.appendChild(deleteBtn);
         taskList.appendChild(li);
       });
-      updateEmptyMsg();
     }
 
     function addTask() {
       const text = input.value.trim();
       if (!text) return;
-      tasks.push({ text, done: false });
-      saveTasks();
+      const tasks = getTasks();
+      tasks.push({
+        id:   `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
+        text,
+        done: false,
+        notifyTime: null,
+      });
+      saveTasks(tasks);
       renderTasks();
       input.value = '';
       input.focus();
     }
 
     function toggleTask(index) {
+      const tasks = getTasks();
       tasks[index].done = !tasks[index].done;
-      saveTasks();
+      saveTasks(tasks);
       renderTasks();
     }
 
     function deleteTask(index) {
+      const tasks = getTasks();
       tasks.splice(index, 1);
-      saveTasks();
+      saveTasks(tasks);
       renderTasks();
     }
 
     addBtn.addEventListener('click', addTask);
-    input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') addTask();
-    });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
 
     renderTasks();
+
+    // localStorageが他タブで更新されたときに反映
+    window.addEventListener('storage', e => {
+      if (e.key === 'calendarTasks') renderTasks();
+    });
   </script>
 </body>
 </html>

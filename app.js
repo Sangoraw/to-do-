@@ -64,13 +64,25 @@ function renderCalendar() {
   title.textContent = `${currentYear}年 ${currentMonth + 1}月`;
   grid.innerHTML = '';
 
-  // Day-of-week headers
+  // Day-of-week headers — clickable to open nearest occurrence of that weekday
+  const todayDow = _today.getDay();
   ['日', '月', '火', '水', '木', '金', '土'].forEach((label, i) => {
     const div = document.createElement('div');
-    div.className = 'day-header';
+    div.className = 'day-header clickable';
     if (i === 0) div.classList.add('sun');
     if (i === 6) div.classList.add('sat');
     div.textContent = label;
+    div.addEventListener('click', () => {
+      const base = new Date(_today);
+      let diff = i - todayDow;
+      if (diff < 0) diff += 7;
+      base.setDate(_today.getDate() + diff);
+      currentYear  = base.getFullYear();
+      currentMonth = base.getMonth();
+      const dateStr = toDateStr(base.getFullYear(), base.getMonth(), base.getDate());
+      renderCalendar();
+      openPanel(dateStr);
+    });
     grid.appendChild(div);
   });
 
