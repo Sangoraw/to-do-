@@ -439,13 +439,17 @@
       if (current) timeInput.value = current;
     }
 
-    // タイマーセレクト（10分〜120分）
+    // タイマーセレクト（10分〜600分）
     function buildTimerOptions() {
       timerInput.innerHTML = '<option value="">分後を選択</option>';
-      for (let m = 10; m <= 120; m += 10) {
+      for (let m = 10; m <= 600; m += 10) {
         const opt = document.createElement('option');
-        opt.value       = m;
-        opt.textContent = m < 60 ? `${m}分後` : m === 60 ? '1時間後' : `1時間${m - 60}分後`;
+        opt.value = m;
+        const h = Math.floor(m / 60);
+        const min = m % 60;
+        if (h === 0) opt.textContent = `${m}分後`;
+        else if (min === 0) opt.textContent = `${h}時間後`;
+        else opt.textContent = `${h}時間${min}分後`;
         timerInput.appendChild(opt);
       }
     }
