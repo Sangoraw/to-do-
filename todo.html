@@ -291,6 +291,39 @@
       padding: 32px 0;
     }
 
+    /* Notification permission banner */
+    .notify-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      background: #ebf4ff;
+      border: 1.5px solid #bee3f8;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+
+    .notify-banner p {
+      font-size: 0.88rem;
+      color: var(--text);
+      flex: 1;
+    }
+
+    .notify-banner button {
+      padding: 8px 14px;
+      background: var(--primary);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
     /* Bottom nav */
     .bottom-nav {
       position: fixed;
@@ -351,6 +384,11 @@
   </header>
 
   <main class="content">
+    <div class="notify-banner" id="notify-banner" style="display:none">
+      <p>通知を許可すると、タスクの時間にお知らせが届きます</p>
+      <button id="notify-banner-btn">許可する</button>
+    </div>
+
     <div class="today-badge">
       <div class="dot"></div>
       <span id="today-label">今日のタスク</span>
@@ -584,9 +622,20 @@
       localStorage.setItem(key, '1');
     }
 
-    async function requestNotify() {
+    function updateNotifyBanner() {
+      const banner = document.getElementById('notify-banner');
+      if (!banner || !('Notification' in window)) return;
+      banner.style.display = Notification.permission === 'granted' ? 'none' : 'flex';
+    }
+
+    async function requestNotifyFromBanner() {
       if (!('Notification' in window)) return;
-      if (Notification.permission === 'default') await Notification.requestPermission();
+      if (Notification.permission === 'denied') {
+        alert('通知がブロックされています。\nブラウザのアドレスバー横のアイコンから「通知」を「許可」に変更してください。');
+        return;
+      }
+      await Notification.requestPermission();
+      updateNotifyBanner();
     }
 
     // ================================================================
@@ -776,7 +825,8 @@
       if ('serviceWorker' in navigator) {
         await navigator.serviceWorker.register('./sw.js', { scope: './' }).catch(() => {});
       }
-      await requestNotify();
+      updateNotifyBanner();
+      document.getElementById('notify-banner-btn').addEventListener('click', requestNotifyFromBanner);
       renderTasks();
       renderPastTasks();
       checkNotifications();

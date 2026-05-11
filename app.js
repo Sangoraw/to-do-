@@ -524,6 +524,7 @@ async function requestNotificationPermission() {
   }
   const permission = await Notification.requestPermission();
   updateNotifyBtn(permission);
+  updateNotifyBanner();
   if (permission === 'granted') {
     // Test notification so the user knows it's working
     setTimeout(() => fireNotification('通知が有効になりました！', null), 800);
@@ -583,8 +584,19 @@ window.addEventListener('appinstalled', () => {
 // Bootstrap
 // ================================================================
 
+function updateNotifyBanner() {
+  const banner = document.getElementById('notify-banner');
+  if (!banner || !('Notification' in window)) return;
+  banner.style.display = Notification.permission === 'granted' ? 'none' : 'flex';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   await registerSW();
+
+  // Notification banner
+  updateNotifyBanner();
+  const bannerBtn = document.getElementById('notify-banner-btn');
+  if (bannerBtn) bannerBtn.addEventListener('click', requestNotificationPermission);
 
   // Notification button state
   if ('Notification' in window) {
