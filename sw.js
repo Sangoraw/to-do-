@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'schedule-app-v2';
+const CACHE_NAME = 'schedule-app-v3';
 const ASSETS = [
   './',
   './index.html',

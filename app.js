@@ -445,8 +445,8 @@ function checkNotifications() {
     const target = new Date(`${notif.dateStr}T${notif.notifyTime}:00`);
     const diff   = now - target; // ms since target time
 
-    // Fire if within the past 2 minutes (handles brief app inactivity)
-    if (diff >= 0 && diff < 120_000) {
+    // Fire if within the past 5 minutes (handles brief app inactivity)
+    if (diff >= 0 && diff < 300_000) {
       const tasks = getTasksForDate(notif.dateStr);
       const task  = tasks.find(t => t.id === notif.id);
       if (task && !task.done) {
@@ -456,8 +456,8 @@ function checkNotifications() {
       return { ...notif, shown: true };
     }
 
-    // Auto-expire notifications more than 2 minutes old
-    if (diff >= 120_000) {
+    // Auto-expire notifications more than 5 minutes old
+    if (diff >= 300_000) {
       changed = true;
       return { ...notif, shown: true };
     }
@@ -482,7 +482,7 @@ function checkMorningReminder() {
   localStorage.setItem(key, '1');
 }
 
-function fireNotification(text, dateStr) {
+async function fireNotification(text, dateStr) {
   const title   = 'タスクのお知らせ';
   const options = {
     body:  text,
@@ -491,14 +491,14 @@ function fireNotification(text, dateStr) {
     data:  { dateStr },
   };
 
-  // Prefer SW notification (works when backgrounded on Android)
-  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({
-      type: 'SHOW_NOTIFICATION',
-      title,
-      options,
-    });
-  } else {
+  if ('serviceWorker' in navigator) {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification(title, { ...options, vibrate: [200, 100, 200], requireInteraction: false });
+      return;
+    } catch (e) {}
+  }
+  if (Notification.permission === 'granted') {
     new Notification(title, options);
   }
 }

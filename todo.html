@@ -322,6 +322,25 @@
     }
 
     .nav-icon { font-size: 1.3rem; line-height: 1; }
+
+    /* Past unfinished tasks */
+    .past-section {
+      margin-top: 24px;
+    }
+
+    .past-date-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--danger);
+      padding: 10px 4px 6px;
+    }
+
+    #past-task-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+
+    .past-task {
+      border-color: #fed7d7;
+      background: #fff5f5;
+    }
   </style>
 </head>
 <body>
@@ -367,6 +386,14 @@
 
     <ul id="task-list"></ul>
     <p class="empty-msg" id="empty-msg">今日のタスクはありません</p>
+
+    <div class="past-section" id="past-tasks-container" style="display:none">
+      <div class="section-header">
+        <span class="section-title">未完了の過去タスク</span>
+        <span class="task-count-badge" id="past-count">0</span>
+      </div>
+      <ul id="past-task-list"></ul>
+    </div>
   </main>
 
   <nav class="bottom-nav">
@@ -497,12 +524,17 @@
       saveNotifications(getNotifications().filter(n => n.id !== taskId));
     }
 
-    function fireNotification(text) {
+    async function fireNotification(text) {
       const title   = 'タスクのお知らせ';
       const options = { body: text, icon: './icons/icon.svg', badge: './icons/icon.svg' };
-      if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title, options });
-      } else {
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.ready;
+          await reg.showNotification(title, { ...options, vibrate: [200, 100, 200], requireInteraction: false });
+          return;
+        } catch (e) {}
+      }
+      if (Notification.permission === 'granted') {
         new Notification(title, options);
       }
     }
@@ -516,14 +548,14 @@
         if (n.shown) return n;
         const target = new Date(`${n.dateStr}T${n.notifyTime}:00`);
         const diff   = now - target;
-        if (diff >= 0 && diff < 120_000) {
+        if (diff >= 0 && diff < 300_000) {
           const allData = getData();
           const task = (allData[n.dateStr] || []).find(t => t.id === n.id);
           if (task && !task.done) fireNotification(n.text);
           changed = true;
           return { ...n, shown: true };
         }
-        if (diff >= 120_000) { changed = true; return { ...n, shown: true }; }
+        if (diff >= 300_000) { changed = true; return { ...n, shown: true }; }
         return n;
       });
       if (changed) saveNotifications(updated);
@@ -604,6 +636,87 @@
     }
 
     // ================================================================
+    // 過去の未完了タスク
+    // ================================================================
+    function renderPastTasks() {
+      const container = document.getElementById('past-tasks-container');
+      const pastList  = document.getElementById('past-task-list');
+      const data      = getData();
+
+      const pastEntries = Object.keys(data)
+        .filter(d => d < dateStr)
+        .sort()
+        .map(d => ({ date: d, tasks: data[d].filter(t => !t.done) }))
+        .filter(e => e.tasks.length > 0);
+
+      const totalCount = pastEntries.reduce((s, e) => s + e.tasks.length, 0);
+      document.getElementById('past-count').textContent = totalCount;
+
+      if (pastEntries.length === 0) {
+        container.style.display = 'none';
+        return;
+      }
+      container.style.display = 'block';
+      pastList.innerHTML = '';
+
+      pastEntries.forEach(({ date, tasks }) => {
+        const [y, m, d] = date.split('-').map(Number);
+        const label = document.createElement('div');
+        label.className   = 'past-date-label';
+        label.textContent = `${m}月${d}日（${dayNames[new Date(y, m - 1, d).getDay()]}）`;
+        pastList.appendChild(label);
+
+        tasks.forEach(task => {
+          const li = document.createElement('li');
+          li.className = 'task-item past-task';
+
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.addEventListener('change', () => {
+            const all = getData();
+            const t   = (all[date] || []).find(t => t.id === task.id);
+            if (t) { t.done = true; localStorage.setItem('calendarTasks', JSON.stringify(all)); }
+            renderPastTasks();
+          });
+
+          const info = document.createElement('div');
+          info.className = 'task-info';
+          const span = document.createElement('span');
+          span.className   = 'task-text';
+          span.textContent = task.text;
+          info.appendChild(span);
+          if (task.notifyTime) {
+            const tt = document.createElement('span');
+            tt.className   = 'task-time';
+            tt.textContent = '🕐 ' + task.notifyTime;
+            info.appendChild(tt);
+          }
+
+          const del = document.createElement('button');
+          del.className   = 'delete-btn';
+          del.textContent = '×';
+          del.addEventListener('click', () => {
+            const all  = getData();
+            const list = all[date] || [];
+            const idx  = list.findIndex(t => t.id === task.id);
+            if (idx !== -1) {
+              removeNotification(list[idx].id);
+              list.splice(idx, 1);
+              if (list.length === 0) delete all[date]; else all[date] = list;
+              localStorage.setItem('calendarTasks', JSON.stringify(all));
+            }
+            renderPastTasks();
+          });
+
+          li.appendChild(cb);
+          li.appendChild(info);
+          li.appendChild(del);
+          pastList.appendChild(li);
+        });
+      });
+    }
+
+    // ================================================================
     // タスク追加・編集・削除
     // ================================================================
     function addTask() {
@@ -665,13 +778,14 @@
       }
       await requestNotify();
       renderTasks();
+      renderPastTasks();
       checkNotifications();
       checkMorningReminder();
       setInterval(() => { checkNotifications(); checkMorningReminder(); }, 60_000);
     })();
 
     window.addEventListener('storage', e => {
-      if (e.key === 'calendarTasks') renderTasks();
+      if (e.key === 'calendarTasks') { renderTasks(); renderPastTasks(); }
     });
   </script>
 </body>
