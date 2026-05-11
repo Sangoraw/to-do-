@@ -512,22 +512,28 @@ async function requestNotificationPermission() {
     alert('このブラウザは通知に対応していません');
     return;
   }
-  // すでにブロックされている場合は解除方法を案内
   if (Notification.permission === 'denied') {
     alert(
-      '通知がブロックされています。\n\n' +
-      '解除するには：\n' +
-      'ブラウザのアドレスバー左にある 🔒 アイコン（またはサイト設定）をクリックし、' +
-      '「通知」を「許可」に変更してください。'
+      '通知の許可を解除する手順：\n\n' +
+      '① Chromeでこのページを開く\n' +
+      '② アドレスバーの左にある🔒をタップ\n' +
+      '③「サイトの設定」をタップ\n' +
+      '④「通知」を「許可」に変更'
     );
     return;
   }
-  const permission = await Notification.requestPermission();
-  updateNotifyBtn(permission);
-  updateNotifyBanner();
-  if (permission === 'granted') {
-    // Test notification so the user knows it's working
-    setTimeout(() => fireNotification('通知が有効になりました！', null), 800);
+  try {
+    const permission = await new Promise(resolve => {
+      const ret = Notification.requestPermission(resolve);
+      if (ret && typeof ret.then === 'function') ret.then(resolve);
+    });
+    updateNotifyBtn(permission);
+    updateNotifyBanner();
+    if (permission === 'granted') {
+      setTimeout(() => fireNotification('通知が有効になりました！', null), 800);
+    }
+  } catch (e) {
+    alert('通知の許可に失敗しました。ブラウザの設定から手動で許可してください。');
   }
 }
 
@@ -585,9 +591,25 @@ window.addEventListener('appinstalled', () => {
 // ================================================================
 
 function updateNotifyBanner() {
-  const banner = document.getElementById('notify-banner');
+  const banner    = document.getElementById('notify-banner');
+  const bannerMsg = document.getElementById('notify-banner-msg');
+  const bannerBtn = document.getElementById('notify-banner-btn');
   if (!banner || !('Notification' in window)) return;
-  banner.style.display = Notification.permission === 'granted' ? 'none' : 'flex';
+
+  const perm = Notification.permission;
+  if (perm === 'granted') { banner.style.display = 'none'; return; }
+  banner.style.display = 'flex';
+  if (perm === 'denied') {
+    banner.style.background   = '#fff5f5';
+    banner.style.borderColor  = '#fed7d7';
+    if (bannerMsg) bannerMsg.textContent = '通知がブロックされています。Chromeの設定から手動で許可してください。';
+    if (bannerBtn) bannerBtn.textContent = '設定方法を見る';
+  } else {
+    banner.style.background   = '#ebf4ff';
+    banner.style.borderColor  = '#bee3f8';
+    if (bannerMsg) bannerMsg.textContent = '通知を許可すると、タスクの時間にお知らせが届きます';
+    if (bannerBtn) bannerBtn.textContent = '許可する';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

@@ -385,7 +385,7 @@
 
   <main class="content">
     <div class="notify-banner" id="notify-banner" style="display:none">
-      <p>通知を許可すると、タスクの時間にお知らせが届きます</p>
+      <p id="notify-banner-msg">通知を許可すると、タスクの時間にお知らせが届きます</p>
       <button id="notify-banner-btn">許可する</button>
     </div>
 
@@ -624,18 +624,54 @@
 
     function updateNotifyBanner() {
       const banner = document.getElementById('notify-banner');
+      const bannerMsg = document.getElementById('notify-banner-msg');
+      const bannerBtn = document.getElementById('notify-banner-btn');
       if (!banner || !('Notification' in window)) return;
-      banner.style.display = Notification.permission === 'granted' ? 'none' : 'flex';
+
+      const perm = Notification.permission;
+      if (perm === 'granted') {
+        banner.style.display = 'none';
+        return;
+      }
+      banner.style.display = 'flex';
+      if (perm === 'denied') {
+        banner.style.background = '#fff5f5';
+        banner.style.borderColor = '#fed7d7';
+        bannerMsg.textContent = '通知がブロックされています。Chromeの設定から手動で許可してください。';
+        bannerBtn.textContent = '設定方法を見る';
+      } else {
+        banner.style.background = '#ebf4ff';
+        banner.style.borderColor = '#bee3f8';
+        bannerMsg.textContent = '通知を許可すると、タスクの時間にお知らせが届きます';
+        bannerBtn.textContent = '許可する';
+      }
     }
 
     async function requestNotifyFromBanner() {
       if (!('Notification' in window)) return;
+
       if (Notification.permission === 'denied') {
-        alert('通知がブロックされています。\nブラウザのアドレスバー横のアイコンから「通知」を「許可」に変更してください。');
+        alert(
+          '通知の許可を解除する手順：\n\n' +
+          '① Chromeでこのページを開く\n' +
+          '② アドレスバーの左にある🔒をタップ\n' +
+          '③「サイトの設定」をタップ\n' +
+          '④「通知」を「許可」に変更'
+        );
         return;
       }
-      await Notification.requestPermission();
-      updateNotifyBanner();
+
+      // Androidの一部バージョンでPromise形式が動かないため両方試す
+      try {
+        const perm = await new Promise(resolve => {
+          const ret = Notification.requestPermission(resolve);
+          if (ret && typeof ret.then === 'function') ret.then(resolve);
+        });
+        updateNotifyBanner();
+        if (perm === 'granted') fireNotification('通知が有効になりました！');
+      } catch (e) {
+        alert('通知の許可に失敗しました。ブラウザの設定から手動で許可してください。');
+      }
     }
 
     // ================================================================
